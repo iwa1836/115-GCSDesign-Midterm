@@ -1,0 +1,20 @@
+flowchart TD
+    Start(["Start main.py"]) --> InitApp["Initialize QuadcopterMissionApp & MAVSDK System()"]
+    InitApp --> ComposeUI["compose(): Build TUI Layout<br/>(Header, 4 TelemetryCards, Status Banner, Log, Footer)"]
+    ComposeUI --> OnMount["on_mount(): Start initialize_and_run() Worker"]
+
+    subgraph MainWorkflow ["Async Initialization & Execution"]
+        OnMount --> Connect["Connect to Drone at udpin://0.0.0.0:14540"]
+        Connect --> WaitConn{"Wait for connection_state()<br/>is_connected == True?"}
+        WaitConn -- "No" --> WaitConn
+        WaitConn -- "Yes" --> SpawnTelemetry["Spawn 5 Concurrent Telemetry Workers<br/>(Attitude, Altitude, Speed, Battery, Mission Progress)"]
+        SpawnTelemetry --> RunMission["Await mission_executor.execute_mission()"]
+    end
+
+    subgraph Keybindings ["User Keybinding Listeners"]
+        ComposeUI -. "Press 'l'" .-> EmerLand["action_emergency_land()"]
+        EmerLand --> PauseMission["drone.mission.pause_mission()"]
+        PauseMission --> LandNow["drone.action.land()"]
+        
+        ComposeUI -. "Press 'q'" .-> QuitApp(["Quit Application"])
+    end

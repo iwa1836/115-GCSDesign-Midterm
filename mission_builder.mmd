@@ -1,0 +1,15 @@
+flowchart TD
+    subgraph GeoMath ["get_destination_coordinate(lat1_deg, lon1_deg, distance_m, bearing_deg)"]
+        StartGeo(["Call get_destination_coordinate"]) --> DegToRad["1. Convert lat1, lon1, and bearing<br/>from degrees to radians"]
+        DegToRad --> AngDist["2. Calculate angular distance:<br/>angular_dist = distance_m / R (6,371,000 m)"]
+        AngDist --> CalcLat2["3. Calculate destination latitude (lat2)<br/>via spherical law of cosines"]
+        CalcLat2 --> CalcLon2["4. Calculate destination longitude (lon2)<br/>using atan2(y, x)"]
+        CalcLon2 --> RadToDeg["5. Convert lat2 and lon2 back to degrees"]
+        RadToDeg --> NormLon["6. Normalize lon2_deg to [-180°, +180°]"]
+        NormLon --> RetGeo(["Return (lat2_deg, lon2_deg)"])
+    end
+
+    subgraph WaypointBuilder ["make_wp(lat, lon, rel_alt_m, speed_m_s, vehicle_action, ...)"]
+        StartWP(["Call make_wp"]) --> CreateItem["Construct MAVSDK MissionItem<br/>with coordinates, altitude, speed, and action"]
+        CreateItem --> RetWP(["Return MissionItem"])
+    end

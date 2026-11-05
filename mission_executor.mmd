@@ -1,0 +1,39 @@
+flowchart TD
+    Start(["Start execute_mission()"]) --> WaitHealth{"Wait for GPS &<br/>Home Position OK?"}
+    WaitHealth -- "No" --> WaitHealth
+    WaitHealth -- "Yes" --> GetHome["Fetch current GPS coordinates<br/>as home_lat, home_lon"]
+    
+    GetHome --> BuildHex["Build Hexagon Mission Items<br/>using get_destination_coordinate() & make_wp()"]
+    BuildHex --> Upload["Upload MissionPlan to Drone &<br/>Set RTL Altitude (10 m)"]
+    
+    Upload --> Arm["1. Arm Quadcopter"]
+    Arm --> Takeoff["2. Take Off to Target Altitude (10 m)"]
+    Takeoff --> WaitAlt{"Relative Altitude<br/>>= 9.5 m (95%)?"}
+    WaitAlt -- "No" --> WaitAlt
+    
+    WaitAlt -- "Yes" --> StartHex["3. Start Hexagon Mission"]
+    StartHex --> WaitHex{"Mission Progress:<br/>current == total?"}
+    WaitHex -- "No" --> WaitHex
+    
+    WaitHex -- "Yes" --> GotoCircle["4a. Navigate to Circle Start<br/>(15 m South of Home)"]
+    GotoCircle --> WaitCirclePos{"Reached Circle<br/>Start Coordinates?"}
+    WaitCirclePos -- "No" --> WaitCirclePos
+    
+    WaitCirclePos -- "Yes" --> StartOffboard["4b. Set 0 Velocity & Start Offboard Mode"]
+    StartOffboard --> CheckOffboard{"Is Offboard<br/>Active?"}
+    
+    CheckOffboard -- "Yes" --> FlyCircle["Command Body Velocity & Yaw Rate<br/>to Fly Circle Pattern"]
+    FlyCircle --> WaitHalf{"Heading between<br/>175° and 185°?"}
+    WaitHalf -- "No" --> WaitHalf
+    WaitHalf -- "Yes" --> MarkHalf["Mark Halfway Detected"]
+    MarkHalf --> WaitFull{"Heading Returned<br/>to <= 5°?"}
+    WaitFull -- "No" --> WaitFull
+    WaitFull -- "Yes" --> StopOffboard["Zero Velocity & Stop Offboard Mode"]
+    
+    CheckOffboard -- "No" --> RTL
+    StopOffboard --> RTL["5. Command Return to Launch (RTL)"]
+    
+    RTL --> WaitLand{"Telemetry in_air<br/>== False?"}
+    WaitLand -- "No" --> WaitLand
+    WaitLand -- "Yes" --> Disarm["6. Disarm Quadcopter"]
+    Disarm --> Done(["Mission Complete"])

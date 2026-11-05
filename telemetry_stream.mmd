@@ -1,0 +1,36 @@
+flowchart TD
+    Start(["Background Telemetry Workers Spawned"]) --> Att & Alt & Spd & Bat & Prog
+
+    subgraph AttitudeWorker ["stream_attitude()"]
+        Att["Subscribe to telemetry.attitude_euler()"] --> LoopAtt["Receive Euler Angles"]
+        LoopAtt --> UpdAtt["Update #card-attitude<br/>(Roll, Pitch, Yaw)"]
+        UpdAtt --> LoopAtt
+    end
+
+    subgraph AltitudeWorker ["stream_altitude()"]
+        Alt["Subscribe to telemetry.position()"] --> LoopAlt["Receive Position"]
+        LoopAlt --> UpdAlt["Update #card-altitude<br/>(Relative AGL & Absolute AMSL)"]
+        UpdAlt --> LoopAlt
+    end
+
+    subgraph SpeedWorker ["stream_ground_speed()"]
+        Spd["Subscribe to telemetry.velocity_ned()"] --> LoopSpd["Receive NED Velocity"]
+        LoopSpd --> CalcSpd["Calculate Ground Speed:<br/>hypot(north_m_s, east_m_s)"]
+        CalcSpd --> UpdSpd["Update #card-speed<br/>(Ground Speed, N/E Velocities)"]
+        UpdSpd --> LoopSpd
+    end
+
+    subgraph BatteryWorker ["stream_battery()"]
+        Bat["Subscribe to telemetry.battery()"] --> LoopBat["Receive Battery Status"]
+        LoopBat --> NormBat["Normalize % (v1 vs v2/v3),<br/>Format Voltage & Ah Consumed"]
+        NormBat --> UpdBat["Update #card-battery<br/>(Remaining %, Voltage, Consumption)"]
+        UpdBat --> LoopBat
+    end
+
+    subgraph ProgressWorker ["stream_mission_progress()"]
+        Prog["Subscribe to mission.mission_progress()"] --> LoopProg["Receive Progress Update"]
+        LoopProg --> CheckWP{"New Waypoint<br/>Reached?"}
+        CheckWP -- "Yes" --> LogWP["Log 'Reached Waypoint current/total'<br/>to Status Banner & Log"]
+        CheckWP -- "No" --> LoopProg
+        LogWP --> LoopProg
+    end
